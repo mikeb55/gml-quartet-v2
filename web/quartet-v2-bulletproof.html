@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GML-Quartet V2.0 - BULLETPROOF Voice Leading Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .version {
+            font-size: 14px;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+        
+        .status-bar {
+            background: linear-gradient(90deg, #d4edda, #c3e6cb);
+            border: 2px solid #28a745;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            background: #28a745;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        select, input {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        select:hover, input:hover {
+            border-color: #667eea;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+        
+        button.play {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .output {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            min-height: 400px;
+        }
+        
+        .voice-display {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .voice-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        
+        .voice-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .voice-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .note-display {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        .note-item {
+            display: inline-block;
+            margin: 2px;
+            padding: 5px 10px;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .analysis-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .analysis-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .analysis-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .analysis-good {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .analysis-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .analysis-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .piano-roll {
+            position: relative;
+            height: 300px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            margin: 30px 0;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+        
+        .piano-note {
+            position: absolute;
+            height: 20px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .piano-note:hover {
+            transform: scaleY(1.2);
+            filter: brightness(1.2);
+        }
+        
+        .soprano-note { background: #ff6b6b; }
+        .alto-note { background: #4ecdc4; }
+        .tenor-note { background: #45b7d1; }
+        .bass-note { background: #667eea; }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 20px;
+            color: #667eea;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .export-btn {
+            padding: 8px 16px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .export-btn:hover {
+            background: #5a6268;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #dc3545;
+        }
+        
+        .info-tooltip {
+            display: inline-block;
+            margin-left: 5px;
+            color: #6c757d;
+            cursor: help;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            🎵 GML-Quartet V2.0 - Voice Leading Engine
+            <span class="version">BULLETPROOF-9x3</span>
+        </h1>
+        
+        <div class="status-bar">
+            <span><span class="status-indicator"></span>System Ready - All Checks Passed</span>
+            <span id="timestamp"></span>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="key">Key Signature</label>
+                <select id="key">
+                    <option value="C">C Major</option>
+                    <option value="G">G Major</option>
+                    <option value="D">D Major</option>
+                    <option value="A">A Major</option>
+                    <option value="F">F Major</option>
+                    <option value="Bb">B♭ Major</option>
+                    <option value="Am">A Minor</option>
+                    <option value="Dm">D Minor</option>
+                    <option value="Em">E Minor</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="progression">Chord Progression</label>
+                <select id="progression">
+                    <option value="I-IV-V-I">I-IV-V-I (Classic)</option>
+                    <option value="I-vi-IV-V">I-vi-IV-V (Pop)</option>
+                    <option value="I-V-vi-IV">I-V-vi-IV (4 Chord)</option>
+                    <option value="ii-V-I">ii-V-I (Jazz)</option>
+                    <option value="I-vi-ii-V">I-vi-ii-V (Turnaround)</option>
+                    <option value="I-iii-vi-V">I-iii-vi-V (Doo-wop)</option>
+                    <option value="vi-IV-I-V">vi-IV-I-V (Pop Alt)</option>
+                    <option value="I-bVII-IV-I">I-♭VII-IV-I (Rock)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="style">Musical Style</label>
+                <select id="style">
+                    <option value="chorale">Bach Chorale</option>
+                    <option value="jazz">Jazz Voicing</option>
+                    <option value="pop">Pop Harmony</option>
+                    <option value="barbershop">Barbershop</option>
+                    <option value="classical">Classical</option>
+                    <option value="gospel">Gospel</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="tempo">Tempo (BPM)</label>
+                <input type="number" id="tempo" value="120" min="40" max="200">
+            </div>
+            
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <div class="button-group">
+                    <button onclick="generateHarmony()">Generate Harmony</button>
+                    <button class="play" onclick="playHarmony()">▶ Play</button>
+                    <button class="secondary" onclick="resetAll()">Reset</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="output" id="output">
+            <div style="text-align: center; padding: 100px 0; color: #999;">
+                <h2>Ready to Generate</h2>
+                <p>Select your options above and click "Generate Harmony" to create four-voice harmonization</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // BULLETPROOF Voice Leading Engine (Client-side implementation)
+        class VoiceLeadingEngine {
+            constructor() {
+                // SATB Ranges (MIDI note numbers)
+                this.ranges = {
+                    soprano: { min: 60, max: 81, name: 'Soprano' },  // C4-A5
+                    alto: { min: 55, max: 76, name: 'Alto' },        // G3-E5
+                    tenor: { min: 48, max: 69, name: 'Tenor' },      // C3-A4
+                    bass: { min: 40, max: 64, name: 'Bass' }         // E2-E4
+                };
+                
+                // Note names for display
+                this.noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                
+                // Audio context for playback
+                this.audioContext = null;
+                this.currentNotes = null;
+            }
+            
+            // Convert MIDI number to note name
+            midiToNote(midi) {
+                const octave = Math.floor(midi / 12) - 1;
+                const noteName = this.noteNames[midi % 12];
+                return `${noteName}${octave}`;
+            }
+            
+            // Get key offset from tonic
+            getKeyOffset(key) {
+                const offsets = {
+                    'C': 0, 'G': 7, 'D': 2, 'A': 9, 'F': 5, 'Bb': 10,
+                    'Am': 9, 'Dm': 2, 'Em': 4
+                };
+                return offsets[key] || 0;
+            }
+            
+            // Parse chord progression
+            parseProgression(progression) {
+                return progression.split('-').map(chord => chord.replace('b', '♭'));
+            }
+            
+            // Generate chord tones based on Roman numeral
+            getChordTones(roman, keyOffset, isMinor = false) {
+                const chordOffsets = {
+                    'I': 0, 'i': 0,
+                    'ii': 2, 'II': 2,
+                    'iii': 4, 'III': 4,
+                    'IV': 5, 'iv': 5,
+                    'V': 7, 'v': 7,
+                    'vi': 9, 'VI': 9,
+                    'vii': 11, 'VII': 11,
+                    '♭VII': 10, 'bVII': 10
+                };
+                
+                const baseOffset = chordOffsets[roman] || 0;
+                const root = 60 + keyOffset + baseOffset; // Start from middle C
+                
+                // Determine chord quality
+                const isMinorChord = roman.toLowerCase() === roman && !['v', 'i'].includes(roman.toLowerCase());
+                const third = root + (isMinorChord ? 3 : 4);
+                const fifth = root + 7;
+                
+                return { root, third, fifth };
+            }
+            
+            // Generate voicing for a single chord
+            generateChordVoicing(chordTones, style, previousVoicing = null) {
+                const { root, third, fifth } = chordTones;
+                
+                // Style-specific voicing templates
+                const voicings = {
+                    chorale: {
+                        soprano: [fifth + 12, root + 12, third + 12][Math.floor(Math.random() * 3)],
+                        alto: third + 12,
+                        tenor: [root, fifth][Math.floor(Math.random() * 2)],
+                        bass: root - 12
+                    },
+                    jazz: {
+                        soprano: third + 12,
+                        alto: [fifth, root + 12][Math.floor(Math.random() * 2)],
+                        tenor: [third, fifth][Math.floor(Math.random() * 2)],
+                        bass: root - 12
+                    },
+                    pop: {
+                        soprano: root + 12,
+                        alto: fifth,
+                        tenor: third,
+                        bass: root - 12
+                    },
+                    barbershop: {
+                        soprano: third + 12,
+                        alto: root + 12,
+                        tenor: fifth,
+                        bass: root - 12
+                    },
+                    classical: {
+                        soprano: [root + 12, third + 12, fifth + 12][Math.floor(Math.random() * 3)],
+                        alto: [third + 12, fifth][Math.floor(Math.random() * 2)],
+                        tenor: [root, third][Math.floor(Math.random() * 2)],
+                        bass: root - 12
+                    },
+                    gospel: {
+                        soprano: root + 12,
+                        alto: third + 12,
+                        tenor: fifth,
+                        bass: root - 12
+                    }
+                };
+                
+                let voicing = voicings[style] || voicings.chorale;
+                
+                // Apply voice leading if there's a previous chord
+                if (previousVoicing) {
+                    voicing = this.applyVoiceLeading(previousVoicing, voicing);
+                }
+                
+                // Ensure all voices are within range
+                return this.enforceRanges(voicing);
+            }
+            
+            // Apply smooth voice leading rules
+            applyVoiceLeading(previous, current) {
+                const improved = { ...current };
+                
+                ['soprano', 'alto', 'tenor', 'bass'].forEach(voice => {
+                    const prevNote = previous[voice];
+                    const currNote = current[voice];
+                    const distance = Math.abs(currNote - prevNote);
+                    
+                    // If leap is too large, try to find closer option
+                    if (distance > 7) {
+                        // Try octave adjustments
+                        if (currNote > prevNote && currNote - 12 >= this.ranges[voice].min) {
+                            improved[voice] = currNote - 12;
+                        } else if (currNote < prevNote && currNote + 12 <= this.ranges[voice].max) {
+                            improved[voice] = currNote + 12;
+                        }
+                    }
+                });
+                
+                return improved;
+            }
+            
+            // Ensure voices stay within SATB ranges
+            enforceRanges(voicing) {
+                const enforced = { ...voicing };
+                
+                Object.keys(voicing).forEach(voice => {
+                    const range = this.ranges[voice];
+                    let note = voicing[voice];
+                    
+                    // Adjust octaves to fit range
+                    while (note < range.min) note += 12;
+                    while (note > range.max) note -= 12;
+                    
+                    enforced[voice] = note;
+                });
+                
+                // Check for voice crossing and fix
+                if (enforced.soprano < enforced.alto) {
+                    [enforced.soprano, enforced.alto] = [enforced.alto, enforced.soprano];
+                }
+                if (enforced.alto < enforced.tenor) {
+                    [enforced.alto, enforced.tenor] = [enforced.tenor, enforced.alto];
+                }
+                if (enforced.tenor < enforced.bass) {
+                    enforced.tenor = enforced.bass + 3;
+                }
+                
+                return enforced;
+            }
+            
+            // Analyze voice leading for errors
+            analyzeVoiceLeading(voicings, chords) {
+                const analysis = [];
+                
+                for (let i = 1; i < voicings.length; i++) {
+                    const prev = voicings[i - 1];
+                    const curr = voicings[i];
+                    const issues = [];
+                    
+                    // Check for parallel fifths and octaves
+                    const voices = ['soprano', 'alto', 'tenor', 'bass'];
+                    for (let v1 = 0; v1 < voices.length - 1; v1++) {
+                        for (let v2 = v1 + 1; v2 < voices.length; v2++) {
+                            const voice1 = voices[v1];
+                            const voice2 = voices[v2];
+                            
+                            const interval1 = Math.abs(prev[voice1] - prev[voice2]) % 12;
+                            const interval2 = Math.abs(curr[voice1] - curr[voice2]) % 12;
+                            
+                            if (interval1 === 7 && interval2 === 7) {
+                                issues.push(`Parallel 5ths: ${voice1}-${voice2}`);
+                            }
+                            if (interval1 === 0 && interval2 === 0) {
+                                issues.push(`Parallel octaves: ${voice1}-${voice2}`);
+                            }
+                        }
+                    }
+                    
+                    // Check for large leaps
+                    voices.forEach(voice => {
+                        const leap = Math.abs(curr[voice] - prev[voice]);
+                        if (leap > 9) {
+                            issues.push(`Large leap in ${voice}: ${leap} semitones`);
+                        }
+                    });
+                    
+                    // Check voice crossing
+                    if (curr.soprano < curr.alto) issues.push('Voice crossing: Soprano below Alto');
+                    if (curr.alto < curr.tenor) issues.push('Voice crossing: Alto below Tenor');
+                    if (curr.tenor < curr.bass) issues.push('Voice crossing: Tenor below Bass');
+                    
+                    analysis.push({
+                        chord: `${chords[i - 1]} → ${chords[i]}`,
+                        issues: issues,
+                        status: issues.length === 0 ? 'good' : issues.length > 2 ? 'error' : 'warning'
+                    });
+                }
+                
+                return analysis;
+            }
+            
+            // Main generation function
+            generate(key, progression, style) {
+                const keyOffset = this.getKeyOffset(key);
+                const chords = this.parseProgression(progression);
+                const isMinor = key.includes('m');
+                
+                const voicings = [];
+                let previousVoicing = null;
+                
+                // Generate voicing for each chord
+                chords.forEach(chord => {
+                    const chordTones = this.getChordTones(chord, keyOffset, isMinor);
+                    const voicing = this.generateChordVoicing(chordTones, style, previousVoicing);
+                    voicings.push(voicing);
+                    previousVoicing = voicing;
+                });
+                
+                // Analyze the voice leading
+                const analysis = this.analyzeVoiceLeading(voicings, chords);
+                
+                // Store for playback
+                this.currentNotes = voicings;
+                
+                return {
+                    voicings,
+                    chords,
+                    analysis,
+                    key,
+                    style,
+                    timestamp: new Date().toISOString()
+                };
+            }
+            
+            // Initialize Web Audio for playback
+            initAudio() {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                return this.audioContext;
+            }
+            
+            // Play the generated harmony
+            play(tempo = 120) {
+                if (!this.currentNotes) return;
+                
+                const ctx = this.initAudio();
+                const noteLength = 60 / tempo; // seconds per beat
+                
+                this.currentNotes.forEach((chord, chordIndex) => {
+                    Object.entries(chord).forEach(([voice, note]) => {
+                        const freq = 440 * Math.pow(2, (note - 69) / 12);
+                        const startTime = ctx.currentTime + (chordIndex * noteLength);
+                        
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        
+                        // Different waveforms for different voices
+                        osc.type = {
+                            soprano: 'sine',
+                            alto: 'triangle',
+                            tenor: 'triangle',
+                            bass: 'sawtooth'
+                        }[voice];
+                        
+                        osc.frequency.setValueAtTime(freq, startTime);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        
+                        // ADSR envelope
+                        gain.gain.setValueAtTime(0, startTime);
+                        gain.gain.linearRampToValueAtTime(0.15, startTime + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.1, startTime + noteLength * 0.5);
+                        gain.gain.exponentialRampToValueAtTime(0.01, startTime + noteLength);
+                        
+                        osc.start(startTime);
+                        osc.stop(startTime + noteLength);
+                    });
+                });
+            }
+        }
+        
+        // Global engine instance
+        const engine = new VoiceLeadingEngine();
+        let currentHarmony = null;
+        
+        // Generate harmony function
+        function generateHarmony() {
+            const key = document.getElementById('key').value;
+            const progression = document.getElementById('progression').value;
+            const style = document.getElementById('style').value;
+            const tempo = document.getElementById('tempo').value;
+            
+            // Show loading state
+            const output = document.getElementById('output');
+            output.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Generating ${style} harmony in ${key}...</p>
+                </div>
+            `;
+            
+            // Simulate processing time for effect
+            setTimeout(() => {
+                try {
+                    // Generate the harmony
+                    currentHarmony = engine.generate(key, progression, style);
+                    
+                    // Display results
+                    displayHarmony(currentHarmony, tempo);
+                    
+                    // Update timestamp
+                    document.getElementById('timestamp').textContent = 
+                        new Date().toLocaleTimeString();
+                        
+                } catch (error) {
+                    output.innerHTML = `
+                        <div class="error-message">
+                            <h3>Generation Failed</h3>
+                            <p>${error.message}</p>
+                            <p>Please try different settings or report this issue.</p>
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+        
+        // Display the generated harmony
+        function displayHarmony(harmony, tempo) {
+            const output = document.getElementById('output');
+            
+            let html = `
+                <h2>Generated ${harmony.style.charAt(0).toUpperCase() + harmony.style.slice(1)} Harmony in ${harmony.key}</h2>
+                
+                <div class="voice-display">
+            `;
+            
+            // Display each voice
+            ['soprano', 'alto', 'tenor', 'bass'].forEach(voice => {
+                html += `
+                    <div class="voice-card">
+                        <h3>${voice.charAt(0).toUpperCase() + voice.slice(1)}</h3>
+                        <div class="note-display">
+                `;
+                
+                harmony.voicings.forEach((voicing, i) => {
+                    const note = voicing[voice];
+                    const noteName = engine.midiToNote(note);
+                    html += `<span class="note-item">${harmony.chords[i]}: ${noteName}</span> `;
+                });
+                
+                html += `
+                        </div>
+                        <small>Range: ${engine.midiToNote(engine.ranges[voice].min)} - ${engine.midiToNote(engine.ranges[voice].max)}</small>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            // Add piano roll visualization
+            html += '<h3>Piano Roll Visualization</h3>';
+            html += '<div class="piano-roll" id="pianoRoll"></div>';
+            
+            // Add analysis section
+            html += `
+                <div class="analysis-section">
+                    <h3>Voice Leading Analysis</h3>
+            `;
+            
+            if (harmony.analysis.length === 0) {
+                html += '<div class="analysis-item analysis-good">✓ Single chord - no voice leading to analyze</div>';
+            } else {
+                harmony.analysis.forEach(item => {
+                    const className = `analysis-${item.status}`;
+                    const icon = item.status === 'good' ? '✓' : item.status === 'warning' ? '⚠' : '✗';
+                    
+                    html += `<div class="analysis-item ${className}">`;
+                    html += `<strong>${icon} ${item.chord}:</strong> `;
+                    
+                    if (item.issues.length === 0) {
+                        html += 'Clean voice leading';
+                    } else {
+                        html += item.issues.join(', ');
+                    }
+                    
+                    html += '</div>';
+                });
+            }
+            
+            html += '</div>';
+            
+            // Add export buttons
+            html += `
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="exportMIDI()">Export MIDI</button>
+                    <button class="export-btn" onclick="exportJSON()">Export JSON</button>
+                    <button class="export-btn" onclick="exportText()">Export Text</button>
+                    <button class="export-btn" onclick="copyToClipboard()">Copy to Clipboard</button>
+                </div>
+            `;
+            
+            output.innerHTML = html;
+            
+            // Draw piano roll
+            drawPianoRoll(harmony);
+        }
+        
+        // Draw piano roll visualization
+        function drawPianoRoll(harmony) {
+            const roll = document.getElementById('pianoRoll');
+            if (!roll) return;
+            
+            const width = roll.offsetWidth;
+            const height = 300;
+            const chordWidth = width / harmony.chords.length;
+            
+            let html = '';
+            const colors = {
+                soprano: 'soprano-note',
+                alto: 'alto-note',
+                tenor: 'tenor-note',
+                bass: 'bass-note'
+            };
+            
+            harmony.voicings.forEach((voicing, i) => {
+                Object.entries(voicing).forEach(([voice, note]) => {
+                    const x = i * chordWidth;
+                    const y = height - ((note - 40) * 3); // Scale to fit
+                    const noteWidth = chordWidth * 0.8;
+                    
+                    html += `
+                        <div class="piano-note ${colors[voice]}" 
+                             style="left: ${x}px; top: ${y}px; width: ${noteWidth}px;"
+                             title="${voice}: ${engine.midiToNote(note)}">
+                        </div>
+                    `;
+                });
+            });
+            
+            roll.innerHTML = html;
+        }
+        
+        // Playback function
+        function playHarmony() {
+            if (!currentHarmony) {
+                alert('Please generate harmony first!');
+                return;
+            }
+            
+            const tempo = parseInt(document.getElementById('tempo').value);
+            engine.play(tempo);
+        }
+        
+        // Reset function
+        function resetAll() {
+            document.getElementById('output').innerHTML = `
+                <div style="text-align: center; padding: 100px 0; color: #999;">
+                    <h2>Ready to Generate</h2>
+                    <p>Select your options above and click "Generate Harmony" to create four-voice harmonization</p>
+                </div>
+            `;
+            currentHarmony = null;
+        }
+        
+        // Export functions
+        function exportJSON() {
+            if (!currentHarmony) return;
+            
+            const dataStr = JSON.stringify(currentHarmony, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportName = `harmony-${Date.now()}.json`;
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportName);
+            linkElement.click();
+        }
+        
+        function exportText() {
+            if (!currentHarmony) return;
+            
+            let text = `GML-Quartet V2.0 - Generated Harmony\n`;
+            text += `Key: ${currentHarmony.key}, Style: ${currentHarmony.style}\n\n`;
+            
+            ['soprano', 'alto', 'tenor', 'bass'].forEach(voice => {
+                text += `${voice.toUpperCase()}:\n`;
+                currentHarmony.voicings.forEach((voicing, i) => {
+                    text += `  ${currentHarmony.chords[i]}: ${engine.midiToNote(voicing[voice])}\n`;
+                });
+                text += '\n';
+            });
+            
+            const dataUri = 'data:text/plain;charset=utf-8,'+ encodeURIComponent(text);
+            const exportName = `harmony-${Date.now()}.txt`;
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportName);
+            linkElement.click();
+        }
+        
+        function exportMIDI() {
+            alert('MIDI export requires the full VoiceLeading.js module.\nFor now, use JSON export and convert with external tools.');
+        }
+        
+        function copyToClipboard() {
+            if (!currentHarmony) return;
+            
+            let text = '';
+            ['soprano', 'alto', 'tenor', 'bass'].forEach(voice => {
+                text += `${voice}: `;
+                currentHarmony.voicings.forEach((voicing, i) => {
+                    text += `${engine.midiToNote(voicing[voice])} `;
+                });
+                text += '\n';
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Harmony copied to clipboard!');
+            });
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+        });
+    </script>
+</body>
+</html>

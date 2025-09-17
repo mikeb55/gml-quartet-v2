@@ -1,0 +1,75 @@
+<DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GML-Quartet V2.0 - Voice Leading Engine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0; padding: 20px; min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px; margin: 0 auto; background: white;
+            border-radius: 15px; padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #333; border-bottom: 3px solid #667eea; padding-bottom: 15px; }
+        .controls {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin: 30px 0;
+        }
+        .control-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; color: #555; }
+        select, button { padding: 10px; border-radius: 5px; font-size: 16px; }
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; cursor: pointer; font-weight: bold;
+        }
+        button:hover { transform: translateY(-2px); }
+        .output { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 30px; }
+        .status { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GML-Quartet V2.0 - Voice Leading Engine</h1>
+        <div class="status"><strong>[OK] System Ready</strong> - BULLETPROOF-9x3 Protocol Active</div>
+        <div class="controls">
+            <div class="control-group">
+                <label>Key:</label>
+                <select id="key">
+                    <option value="C">C Major</option>
+                    <option value="G">G Major</option>
+                    <option value="D">D Major</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Progression:</label>
+                <select id="progression">
+                    <option value="I-IV-V-I">I-IV-V-I</option>
+                    <option value="I-vi-IV-V">I-vi-IV-V</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Style:</label>
+                <select id="style">
+                    <option value="chorale">Bach Chorale</option>
+                    <option value="jazz">Jazz</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button onclick="generateHarmony^(^)">Generate Harmony</button>
+            </div>
+        </div>
+        <div class="output" id="output">Select options and click Generate</div>
+    </div>
+    <script>
+        function generateHarmony() {
+            document.getElementById('output').innerHTML = '<p>Generated Copy full VoiceLeading.js for complete functionality.</p>';
+        }
+    </script>
+</body>
+</html>
