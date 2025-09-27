@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GML-Quintet-Pro v2.2 - Dynamic Profiles</title>
+    <script>
+    // Dynamic profile loader
+    class ProfileManager {
+        constructor() {
+            this.profiles = new Map();
+            this.loadProfiles();
+        }
+        
+        async loadProfiles() {
+            try {
+                // Load from GitHub (replace with your GitHub raw URL)
+                const response = await fetch('https://raw.githubusercontent.com/mikeb55/mrprofiles/main/profiles/index.json');
+                const index = await response.json();
+                
+                // Load each category
+                for (const [category, ids] of Object.entries(index.categories)) {
+                    for (const id of ids) {
+                        const profileUrl = `https://raw.githubusercontent.com/mikeb55/mrprofiles/main/profiles/${category}/${id}.json`;
+                        const profile = await fetch(profileUrl).then(r => r.json());
+                        this.profiles.set(id, profile);
+                    }
+                }
+                
+                this.updateUI();
+            } catch (error) {
+                console.error('Failed to load profiles:', error);
+                this.loadDefaultProfiles();
+            }
+        }
+        
+        updateUI() {
+            // Update dropdown menus with loaded profiles
+            const styleSelect = document.getElementById('styleSelect');
+            styleSelect.innerHTML = '';
+            
+            const categories = {};
+            this.profiles.forEach(profile => {
+                if (!categories[profile.category]) {
+                    categories[profile.category] = [];
+                }
+                categories[profile.category].push(profile);
+            });
+            
+            Object.entries(categories).forEach(([category, profiles]) => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category.charAt(0).toUpperCase() + category.slice(1);
+                
+                profiles.forEach(profile => {
+                    const option = document.createElement('option');
+                    option.value = profile.id;
+                    option.textContent = `${profile.name} - ${profile.description}`;
+                    optgroup.appendChild(option);
+                });
+                
+                styleSelect.appendChild(optgroup);
+            });
+        }
+    }
+    
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+        new ProfileManager();
+    });
+    </script>
+</head>
+<body>
+    <h1>GML-Quintet-Pro v2.2</h1>
+    <select id="styleSelect">
+        <option>Loading profiles from mrprofiles repository...</option>
+    </select>
+    <!-- Rest of quintet interface -->
+</body>
+</html>

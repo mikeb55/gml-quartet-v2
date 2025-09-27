@@ -308,6 +308,89 @@
             }
         }
 
+        /* Section Configuration Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .section-config {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .section-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .section-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -414,7 +497,20 @@
                 <input type="number" id="tempo" min="40" max="200" value="90">
             </div>
 
+            <div class="control-group">
+                <label class="control-label">Form Structure</label>
+                <select id="formStructure">
+                    <option value="single">Single Section</option>
+                    <option value="AB">A-B (Binary)</option>
+                    <option value="ABA">A-B-A (Ternary)</option>
+                    <option value="ABAB">A-B-A-B</option>
+                    <option value="ABCD">A-B-C-D</option>
+                    <option value="custom">Custom Sections</option>
+                </select>
+            </div>
+
             <button id="generateBtn">🎵 Generate Quartet</button>
+            <button id="sectionBtn" class="btn-secondary">📊 Configure Sections</button>
             <button id="harmonizeBtn" class="btn-secondary">🎹 Harmonize Chord</button>
             <button id="clearBtn" class="btn-secondary">🔄 Clear All</button>
         </div>
@@ -512,10 +608,24 @@
         </div>
     </div>
 
+    <!-- Section Configuration Modal -->
+    <div id="sectionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configure Sections</h2>
+                <button class="modal-close" onclick="closeSectionModal()">✕</button>
+            </div>
+            <div id="sectionConfigs">
+                <!-- Section configurations will be added dynamically -->
+            </div>
+            <button onclick="applySections()" style="width: 100%; margin-top: 20px;">Apply Section Settings</button>
+        </div>
+    </div>
+
     <script>
         class QuartetEngine {
             constructor() {
-                this.version = '1.0.0';
+                this.version = '1.1.0';
                 this.state = {
                     parts: {
                         violin1: [],
@@ -523,6 +633,8 @@
                         viola: [],
                         cello: []
                     },
+                    sections: [],
+                    formStructure: 'single',
                     harmony: [],
                     key: 'C',
                     tempo: 90,
@@ -530,6 +642,42 @@
                     measures: 8,
                     voicingStyle: 'classical',
                     texture: 'homophonic'
+                };
+
+                // Default section configurations
+                this.sectionTemplates = {
+                    A: { 
+                        key: 'C', 
+                        voicing: 'classical', 
+                        texture: 'homophonic', 
+                        dynamics: 'mf',
+                        measures: 4,
+                        name: 'Section A'
+                    },
+                    B: { 
+                        key: 'G', 
+                        voicing: 'open', 
+                        texture: 'polyphonic', 
+                        dynamics: 'f',
+                        measures: 4,
+                        name: 'Section B'
+                    },
+                    C: { 
+                        key: 'F', 
+                        voicing: 'mixed', 
+                        texture: 'melody-accomp', 
+                        dynamics: 'mp',
+                        measures: 4,
+                        name: 'Section C'
+                    },
+                    D: { 
+                        key: 'Am', 
+                        voicing: 'modern', 
+                        texture: 'fugal', 
+                        dynamics: 'ff',
+                        measures: 4,
+                        name: 'Section D'
+                    }
                 };
 
                 // Instrument ranges (MIDI note numbers)
@@ -564,6 +712,7 @@
                 document.getElementById('generateBtn').addEventListener('click', () => this.generate());
                 document.getElementById('harmonizeBtn').addEventListener('click', () => this.harmonizeChord());
                 document.getElementById('clearBtn').addEventListener('click', () => this.clear());
+                document.getElementById('sectionBtn').addEventListener('click', () => this.openSectionModal());
 
                 // Export buttons
                 document.getElementById('exportMusicXMLBtn').addEventListener('click', () => this.exportMusicXML());
@@ -577,10 +726,17 @@
                 });
 
                 // Parameter changes
-                ['keyCenter', 'voicingStyle', 'texture', 'measures', 'tempo'].forEach(id => {
+                ['keyCenter', 'voicingStyle', 'texture', 'measures', 'tempo', 'formStructure'].forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
                         element.addEventListener('change', () => this.updateParameters());
+                    }
+                });
+
+                // Form structure change
+                document.getElementById('formStructure').addEventListener('change', (e) => {
+                    if (e.target.value === 'custom') {
+                        this.openSectionModal();
                     }
                 });
 
@@ -646,10 +802,8 @@
             generate() {
                 console.log('Generating quartet arrangement...');
                 
-                const measures = parseInt(document.getElementById('measures').value);
-                const key = document.getElementById('keyCenter').value;
-                const style = document.getElementById('voicingStyle').value;
-                const texture = document.getElementById('texture').value;
+                const formStructure = document.getElementById('formStructure').value;
+                const totalMeasures = parseInt(document.getElementById('measures').value);
                 
                 // Clear previous
                 this.state.parts = {
@@ -659,31 +813,168 @@
                     cello: []
                 };
 
-                // Generate chord progression
-                const progression = this.generateProgression(key, measures);
-                
-                // Voice each chord following quartet rules
-                for (let measure = 0; measure < measures; measure++) {
-                    const chord = progression[measure % progression.length];
-                    const voicing = this.voiceChord(chord, style, texture);
+                // Setup sections based on form structure
+                this.setupSections(formStructure, totalMeasures);
+
+                // Generate each section
+                let currentMeasure = 0;
+                this.state.sections.forEach((section, sectionIndex) => {
+                    console.log(`Generating ${section.name}: ${section.measures} measures, ${section.texture} texture`);
                     
-                    // Add rhythm patterns
-                    const rhythm = this.generateRhythm(texture);
+                    // Generate chord progression for this section
+                    const progression = this.generateProgression(section.key, section.measures);
                     
-                    // Apply to each part
-                    Object.keys(this.state.parts).forEach(part => {
-                        this.state.parts[part].push({
-                            measure: measure + 1,
-                            notes: voicing[part],
-                            rhythm: rhythm[part],
-                            dynamics: this.generateDynamics(measure, measures)
+                    // Generate measures for this section
+                    for (let m = 0; m < section.measures; m++) {
+                        const chord = progression[m % progression.length];
+                        const voicing = this.voiceChord(chord, section.voicing, section.texture);
+                        const rhythm = this.generateRhythm(section.texture);
+                        
+                        // Apply to each part
+                        Object.keys(this.state.parts).forEach(part => {
+                            this.state.parts[part].push({
+                                measure: currentMeasure + 1,
+                                section: section.name,
+                                notes: voicing[part],
+                                rhythm: rhythm[part],
+                                dynamics: section.dynamics || this.generateDynamics(m, section.measures)
+                            });
                         });
-                    });
-                }
+                        
+                        currentMeasure++;
+                    }
+                });
 
                 this.updateDisplay();
                 this.analyzeVoiceLeading();
-                this.showNotification('Quartet generated successfully!');
+                this.showNotification(`Quartet generated: ${this.state.formStructure} form with ${this.state.sections.length} sections`);
+            }
+
+            setupSections(formStructure, totalMeasures) {
+                this.state.formStructure = formStructure;
+                this.state.sections = [];
+                
+                switch(formStructure) {
+                    case 'single':
+                        this.state.sections.push({
+                            ...this.sectionTemplates.A,
+                            measures: totalMeasures,
+                            key: document.getElementById('keyCenter').value,
+                            voicing: document.getElementById('voicingStyle').value,
+                            texture: document.getElementById('texture').value
+                        });
+                        break;
+                        
+                    case 'AB':
+                        const halfMeasures = Math.floor(totalMeasures / 2);
+                        this.state.sections.push(
+                            { ...this.sectionTemplates.A, measures: halfMeasures },
+                            { ...this.sectionTemplates.B, measures: totalMeasures - halfMeasures }
+                        );
+                        break;
+                        
+                    case 'ABA':
+                        const thirdMeasures = Math.floor(totalMeasures / 3);
+                        this.state.sections.push(
+                            { ...this.sectionTemplates.A, measures: thirdMeasures },
+                            { ...this.sectionTemplates.B, measures: thirdMeasures },
+                            { ...this.sectionTemplates.A, measures: totalMeasures - (thirdMeasures * 2) }
+                        );
+                        break;
+                        
+                    case 'ABAB':
+                        const quarterMeasures = Math.floor(totalMeasures / 4);
+                        this.state.sections.push(
+                            { ...this.sectionTemplates.A, measures: quarterMeasures },
+                            { ...this.sectionTemplates.B, measures: quarterMeasures },
+                            { ...this.sectionTemplates.A, measures: quarterMeasures },
+                            { ...this.sectionTemplates.B, measures: totalMeasures - (quarterMeasures * 3) }
+                        );
+                        break;
+                        
+                    case 'ABCD':
+                        const fourthMeasures = Math.floor(totalMeasures / 4);
+                        this.state.sections.push(
+                            { ...this.sectionTemplates.A, measures: fourthMeasures },
+                            { ...this.sectionTemplates.B, measures: fourthMeasures },
+                            { ...this.sectionTemplates.C, measures: fourthMeasures },
+                            { ...this.sectionTemplates.D, measures: totalMeasures - (fourthMeasures * 3) }
+                        );
+                        break;
+                        
+                    case 'custom':
+                        // Will be configured via modal
+                        if (this.state.sections.length === 0) {
+                            this.setupSections('single', totalMeasures);
+                        }
+                        break;
+                }
+            }
+
+            openSectionModal() {
+                const modal = document.getElementById('sectionModal');
+                const container = document.getElementById('sectionConfigs');
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Get current sections or create default
+                if (this.state.sections.length === 0) {
+                    this.setupSections('ABCD', parseInt(document.getElementById('measures').value));
+                }
+                
+                // Create configuration for each section
+                this.state.sections.forEach((section, index) => {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'section-config';
+                    sectionDiv.innerHTML = `
+                        <div class="section-header">
+                            <span class="section-title">${section.name}</span>
+                            <span class="section-indicator">${section.measures} measures</span>
+                        </div>
+                        <div class="section-controls">
+                            <div class="control-group">
+                                <label class="control-label">Measures</label>
+                                <input type="number" min="1" max="16" value="${section.measures}" 
+                                       data-section="${index}" data-field="measures" class="section-input">
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label">Key</label>
+                                <select data-section="${index}" data-field="key" class="section-input">
+                                    <option value="C" ${section.key === 'C' ? 'selected' : ''}>C Major</option>
+                                    <option value="G" ${section.key === 'G' ? 'selected' : ''}>G Major</option>
+                                    <option value="D" ${section.key === 'D' ? 'selected' : ''}>D Major</option>
+                                    <option value="F" ${section.key === 'F' ? 'selected' : ''}>F Major</option>
+                                    <option value="Am" ${section.key === 'Am' ? 'selected' : ''}>A Minor</option>
+                                    <option value="Em" ${section.key === 'Em' ? 'selected' : ''}>E Minor</option>
+                                    <option value="Dm" ${section.key === 'Dm' ? 'selected' : ''}>D Minor</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label">Voicing</label>
+                                <select data-section="${index}" data-field="voicing" class="section-input">
+                                    <option value="classical" ${section.voicing === 'classical' ? 'selected' : ''}>Classical</option>
+                                    <option value="open" ${section.voicing === 'open' ? 'selected' : ''}>Open</option>
+                                    <option value="mixed" ${section.voicing === 'mixed' ? 'selected' : ''}>Mixed</option>
+                                    <option value="modern" ${section.voicing === 'modern' ? 'selected' : ''}>Modern</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label">Texture</label>
+                                <select data-section="${index}" data-field="texture" class="section-input">
+                                    <option value="homophonic" ${section.texture === 'homophonic' ? 'selected' : ''}>Homophonic</option>
+                                    <option value="polyphonic" ${section.texture === 'polyphonic' ? 'selected' : ''}>Polyphonic</option>
+                                    <option value="melody-accomp" ${section.texture === 'melody-accomp' ? 'selected' : ''}>Melody + Accompaniment</option>
+                                    <option value="fugal" ${section.texture === 'fugal' ? 'selected' : ''}>Fugal</option>
+                                    <option value="chorale" ${section.texture === 'chorale' ? 'selected' : ''}>Chorale</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(sectionDiv);
+                });
+                
+                modal.classList.add('active');
             }
 
             generateProgression(key, measures) {
@@ -798,19 +1089,25 @@
             }
 
             updateDisplay() {
-                // Update the visual display
+                // Update the visual display with section indicators
                 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
                 
                 Object.keys(this.state.parts).forEach(part => {
                     const element = document.getElementById(part.replace('violin', 'violin') + 'Notes');
                     if (element && this.state.parts[part].length > 0) {
+                        let currentSection = '';
                         const measures = this.state.parts[part].map(m => {
+                            let sectionMarker = '';
+                            if (m.section && m.section !== currentSection) {
+                                currentSection = m.section;
+                                sectionMarker = `[${m.section}] `;
+                            }
                             const notes = m.notes.map(n => {
                                 const octave = Math.floor(n / 12) - 1;
                                 const noteName = noteNames[n % 12];
                                 return noteName + octave;
                             }).join(' ');
-                            return `M${m.measure}: ${notes}`;
+                            return `${sectionMarker}M${m.measure}: ${notes}`;
                         }).join(' | ');
                         element.textContent = measures;
                     }
@@ -822,6 +1119,17 @@
                 document.getElementById('noteCount').textContent = 
                     Object.values(this.state.parts).reduce((sum, part) => 
                         sum + part.reduce((s, m) => s + m.notes.length, 0), 0);
+                
+                // Show section structure in stats
+                if (this.state.sections.length > 0) {
+                    const sectionInfo = this.state.sections.map(s => 
+                        `${s.name}(${s.measures}m)`
+                    ).join(' ');
+                    document.getElementById('voiceErrors').parentElement.innerHTML = `
+                        <div class="stat-value" style="font-size: 14px;">${this.state.formStructure}</div>
+                        <div class="stat-label">${sectionInfo}</div>
+                    `;
+                }
             }
 
             exportMusicXML() {
@@ -1113,6 +1421,28 @@
         document.addEventListener('DOMContentLoaded', () => {
             window.quartetEngine = new QuartetEngine();
         });
+
+        // Modal control functions
+        function closeSectionModal() {
+            document.getElementById('sectionModal').classList.remove('active');
+        }
+
+        function applySections() {
+            // Update section configurations from inputs
+            const inputs = document.querySelectorAll('.section-input');
+            inputs.forEach(input => {
+                const sectionIndex = parseInt(input.dataset.section);
+                const field = input.dataset.field;
+                const value = input.type === 'number' ? parseInt(input.value) : input.value;
+                
+                if (window.quartetEngine.state.sections[sectionIndex]) {
+                    window.quartetEngine.state.sections[sectionIndex][field] = value;
+                }
+            });
+            
+            closeSectionModal();
+            window.quartetEngine.showNotification('Section settings applied!');
+        }
     </script>
 </body>
 </html>
