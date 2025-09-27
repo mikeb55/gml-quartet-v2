@@ -625,7 +625,7 @@
     <script>
         class QuartetEngine {
             constructor() {
-                this.version = '1.1.0';
+                this.version = '1.2.0';
                 this.state = {
                     parts: {
                         violin1: [],
@@ -652,7 +652,8 @@
                         texture: 'homophonic', 
                         dynamics: 'mf',
                         measures: 4,
-                        name: 'Section A'
+                        name: 'Section A',
+                        rehearsalMark: 'A'
                     },
                     B: { 
                         key: 'G', 
@@ -660,7 +661,8 @@
                         texture: 'polyphonic', 
                         dynamics: 'f',
                         measures: 4,
-                        name: 'Section B'
+                        name: 'Section B',
+                        rehearsalMark: 'B'
                     },
                     C: { 
                         key: 'F', 
@@ -668,7 +670,8 @@
                         texture: 'melody-accomp', 
                         dynamics: 'mp',
                         measures: 4,
-                        name: 'Section C'
+                        name: 'Section C',
+                        rehearsalMark: 'C'
                     },
                     D: { 
                         key: 'Am', 
@@ -676,7 +679,8 @@
                         texture: 'fugal', 
                         dynamics: 'ff',
                         measures: 4,
-                        name: 'Section D'
+                        name: 'Section D',
+                        rehearsalMark: 'D'
                     }
                 };
 
@@ -861,44 +865,45 @@
                             measures: totalMeasures,
                             key: document.getElementById('keyCenter').value,
                             voicing: document.getElementById('voicingStyle').value,
-                            texture: document.getElementById('texture').value
+                            texture: document.getElementById('texture').value,
+                            rehearsalMark: 'A'
                         });
                         break;
                         
                     case 'AB':
                         const halfMeasures = Math.floor(totalMeasures / 2);
                         this.state.sections.push(
-                            { ...this.sectionTemplates.A, measures: halfMeasures },
-                            { ...this.sectionTemplates.B, measures: totalMeasures - halfMeasures }
+                            { ...this.sectionTemplates.A, measures: halfMeasures, rehearsalMark: 'A' },
+                            { ...this.sectionTemplates.B, measures: totalMeasures - halfMeasures, rehearsalMark: 'B' }
                         );
                         break;
                         
                     case 'ABA':
                         const thirdMeasures = Math.floor(totalMeasures / 3);
                         this.state.sections.push(
-                            { ...this.sectionTemplates.A, measures: thirdMeasures },
-                            { ...this.sectionTemplates.B, measures: thirdMeasures },
-                            { ...this.sectionTemplates.A, measures: totalMeasures - (thirdMeasures * 2) }
+                            { ...this.sectionTemplates.A, measures: thirdMeasures, rehearsalMark: 'A' },
+                            { ...this.sectionTemplates.B, measures: thirdMeasures, rehearsalMark: 'B' },
+                            { ...this.sectionTemplates.A, measures: totalMeasures - (thirdMeasures * 2), rehearsalMark: 'A\'' }
                         );
                         break;
                         
                     case 'ABAB':
                         const quarterMeasures = Math.floor(totalMeasures / 4);
                         this.state.sections.push(
-                            { ...this.sectionTemplates.A, measures: quarterMeasures },
-                            { ...this.sectionTemplates.B, measures: quarterMeasures },
-                            { ...this.sectionTemplates.A, measures: quarterMeasures },
-                            { ...this.sectionTemplates.B, measures: totalMeasures - (quarterMeasures * 3) }
+                            { ...this.sectionTemplates.A, measures: quarterMeasures, rehearsalMark: 'A' },
+                            { ...this.sectionTemplates.B, measures: quarterMeasures, rehearsalMark: 'B' },
+                            { ...this.sectionTemplates.A, measures: quarterMeasures, rehearsalMark: 'A\'' },
+                            { ...this.sectionTemplates.B, measures: totalMeasures - (quarterMeasures * 3), rehearsalMark: 'B\'' }
                         );
                         break;
                         
                     case 'ABCD':
                         const fourthMeasures = Math.floor(totalMeasures / 4);
                         this.state.sections.push(
-                            { ...this.sectionTemplates.A, measures: fourthMeasures },
-                            { ...this.sectionTemplates.B, measures: fourthMeasures },
-                            { ...this.sectionTemplates.C, measures: fourthMeasures },
-                            { ...this.sectionTemplates.D, measures: totalMeasures - (fourthMeasures * 3) }
+                            { ...this.sectionTemplates.A, measures: fourthMeasures, rehearsalMark: 'A' },
+                            { ...this.sectionTemplates.B, measures: fourthMeasures, rehearsalMark: 'B' },
+                            { ...this.sectionTemplates.C, measures: fourthMeasures, rehearsalMark: 'C' },
+                            { ...this.sectionTemplates.D, measures: totalMeasures - (fourthMeasures * 3), rehearsalMark: 'D' }
                         );
                         break;
                         
@@ -923,19 +928,51 @@
                     this.setupSections('ABCD', parseInt(document.getElementById('measures').value));
                 }
                 
+                // Add controls header
+                const controlsDiv = document.createElement('div');
+                controlsDiv.style.marginBottom = '20px';
+                controlsDiv.innerHTML = `
+                    <button onclick="window.quartetEngine.addNewSection()" 
+                            style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+                                   margin-right: 10px;">
+                        ➕ Add Section
+                    </button>
+                    <span style="opacity: 0.7; font-size: 14px;">
+                        Total: ${this.state.sections.length} sections
+                    </span>
+                `;
+                container.appendChild(controlsDiv);
+                
                 // Create configuration for each section
                 this.state.sections.forEach((section, index) => {
                     const sectionDiv = document.createElement('div');
                     sectionDiv.className = 'section-config';
                     sectionDiv.innerHTML = `
                         <div class="section-header">
-                            <span class="section-title">${section.name}</span>
-                            <span class="section-indicator">${section.measures} measures</span>
+                            <span class="section-title">${section.name} [${section.rehearsalMark}]</span>
+                            <div>
+                                <span class="section-indicator">${section.measures} measures</span>
+                                ${index > 0 ? `<button onclick="window.quartetEngine.removeSection(${index})" 
+                                        style="background: rgba(239, 68, 68, 0.2); 
+                                               padding: 4px 8px; 
+                                               margin-left: 10px; 
+                                               border-radius: 4px;">✕</button>` : ''}
+                            </div>
                         </div>
                         <div class="section-controls">
                             <div class="control-group">
+                                <label class="control-label">Section Name</label>
+                                <input type="text" value="${section.name}" 
+                                       data-section="${index}" data-field="name" class="section-input">
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label">Rehearsal Mark</label>
+                                <input type="text" value="${section.rehearsalMark}" maxlength="3"
+                                       data-section="${index}" data-field="rehearsalMark" class="section-input">
+                            </div>
+                            <div class="control-group">
                                 <label class="control-label">Measures</label>
-                                <input type="number" min="1" max="16" value="${section.measures}" 
+                                <input type="number" min="1" max="32" value="${section.measures}" 
                                        data-section="${index}" data-field="measures" class="section-input">
                             </div>
                             <div class="control-group">
@@ -975,6 +1012,30 @@
                 });
                 
                 modal.classList.add('active');
+            }
+
+            addNewSection() {
+                const nextLetter = String.fromCharCode(65 + this.state.sections.length);
+                const newSection = {
+                    name: `Section ${nextLetter}`,
+                    rehearsalMark: nextLetter,
+                    measures: 4,
+                    key: 'C',
+                    voicing: 'classical',
+                    texture: 'homophonic',
+                    dynamics: 'mf'
+                };
+                this.state.sections.push(newSection);
+                this.openSectionModal(); // Refresh modal
+                this.showNotification(`Added ${newSection.name}`);
+            }
+
+            removeSection(index) {
+                if (this.state.sections.length > 1) {
+                    const removed = this.state.sections.splice(index, 1)[0];
+                    this.openSectionModal(); // Refresh modal
+                    this.showNotification(`Removed ${removed.name}`);
+                }
             }
 
             generateProgression(key, measures) {
@@ -1193,8 +1254,28 @@
                 const rhythms = [256, 256, 128, 128, 128, 128];
                 
                 let measureXML = `<measure number="${measureNum}">`;
-                if (measureNum === 1) {
+                
+                // Add rehearsal mark at the start of each section (only in first instrument)
+                if (instrument === 'violin1' && measureNum === 1) {
                     measureXML += '<attributes><divisions>256</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time></attributes>';
+                }
+                
+                // Check if this is the start of a new section
+                let currentMeasureCount = 0;
+                let sectionIndex = -1;
+                for (let i = 0; i < this.state.sections.length; i++) {
+                    if (measureNum === currentMeasureCount + 1 && instrument === 'violin1') {
+                        // Add rehearsal mark
+                        measureXML += `
+                        <direction placement="above">
+                            <direction-type>
+                                <rehearsal font-weight="bold" font-size="14">${this.state.sections[i].rehearsalMark}</rehearsal>
+                            </direction-type>
+                        </direction>`;
+                        break;
+                    }
+                    currentMeasureCount += this.state.sections[i].measures;
+                    if (currentMeasureCount >= measureNum) break;
                 }
                 
                 let durationSum = 0;
