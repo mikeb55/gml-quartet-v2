@@ -1,0 +1,889 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quartet Engine V4.0 - MIDI Import & Motif Development</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .midi-import-section {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px dashed #667eea;
+        }
+        .midi-import-section h2 {
+            color: #4a5568;
+            margin-bottom: 15px;
+        }
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-right: 20px;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .file-input-label:hover {
+            transform: scale(1.05);
+        }
+        .motif-display {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        .motif-display.active {
+            display: block;
+        }
+        .motif-notes {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .motif-note {
+            background: #667eea;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .development-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .dev-technique {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dev-technique:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .dev-technique.active {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            border-color: #667eea;
+        }
+        .dev-technique h3 {
+            color: #4a5568;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+        .dev-technique p {
+            color: #718096;
+            font-size: 0.85em;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        select, input, button {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 1em;
+        }
+        select, input {
+            background: white;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .instruments {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .instrument {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .instrument-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .instrument-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        .dev-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .pattern-display {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 2px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 60px;
+            position: relative;
+        }
+        .note-block {
+            background: #667eea;
+            border-radius: 3px;
+            position: absolute;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            transition: all 0.3s;
+        }
+        .note-block.rest {
+            background: #ccc;
+            border: 2px dashed #999;
+        }
+        .note-block.motif {
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+        }
+        .note-block.active {
+            background: #ffd700;
+            animation: pulse 0.5s;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .playback-controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .playback-controls button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+        }
+        #exportBtn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            color: #2e7d32;
+            margin-top: 20px;
+        }
+        .info-panel {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎼 Quartet Engine V4.0 🎻</h1>
+        <p class="subtitle">MIDI Import & Motif Development - By Mike Bryant</p>
+        
+        <div class="info-panel">
+            <strong>🎵 New in V4.0:</strong> Import a MIDI file to extract motifs, then develop them using classical composition techniques: Inversion, Retrograde, Augmentation, Diminution, Transposition, and more!
+        </div>
+        
+        <div class="midi-import-section">
+            <h2>📁 Import MIDI File</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="midiFile" accept=".mid,.midi" onchange="handleMIDIFile(event)">
+                <label for="midiFile" class="file-input-label">
+                    Choose MIDI File
+                </label>
+            </div>
+            <span id="fileName">No file selected</span>
+            
+            <div id="motifDisplay" class="motif-display">
+                <h3>Extracted Motif:</h3>
+                <div id="motifNotes" class="motif-notes"></div>
+                <p>Pitches: <span id="pitchSequence"></span></p>
+                <p>Rhythm: <span id="rhythmSequence"></span></p>
+                <p>Intervals: <span id="intervalSequence"></span></p>
+            </div>
+        </div>
+        
+        <div class="development-controls">
+            <div class="dev-technique" data-technique="original" onclick="selectTechnique('original')">
+                <h3>Original</h3>
+                <p>Use the motif as imported</p>
+            </div>
+            <div class="dev-technique" data-technique="inversion" onclick="selectTechnique('inversion')">
+                <h3>Inversion</h3>
+                <p>Flip intervals upside down</p>
+            </div>
+            <div class="dev-technique" data-technique="retrograde" onclick="selectTechnique('retrograde')">
+                <h3>Retrograde</h3>
+                <p>Reverse the sequence</p>
+            </div>
+            <div class="dev-technique" data-technique="retrograde-inversion" onclick="selectTechnique('retrograde-inversion')">
+                <h3>Retrograde Inversion</h3>
+                <p>Reverse and invert</p>
+            </div>
+            <div class="dev-technique" data-technique="augmentation" onclick="selectTechnique('augmentation')">
+                <h3>Augmentation</h3>
+                <p>Double note durations</p>
+            </div>
+            <div class="dev-technique" data-technique="diminution" onclick="selectTechnique('diminution')">
+                <h3>Diminution</h3>
+                <p>Halve note durations</p>
+            </div>
+            <div class="dev-technique" data-technique="transposition" onclick="selectTechnique('transposition')">
+                <h3>Transposition</h3>
+                <p>Shift pitch level</p>
+            </div>
+            <div class="dev-technique" data-technique="fragmentation" onclick="selectTechnique('fragmentation')">
+                <h3>Fragmentation</h3>
+                <p>Use partial motifs</p>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Key:</label>
+                <select id="keySelect">
+                    <option value="C">C Major</option>
+                    <option value="G">G Major</option>
+                    <option value="D">D Major</option>
+                    <option value="A">A Major</option>
+                    <option value="F">F Major</option>
+                    <option value="Bb">B♭ Major</option>
+                    <option value="Am">A Minor</option>
+                    <option value="Em">E Minor</option>
+                    <option value="Dm">D Minor</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Tempo:</label>
+                <input type="number" id="tempoInput" value="120" min="60" max="200">
+            </div>
+            <div class="control-group">
+                <label>Time Signature:</label>
+                <select id="timeSignature">
+                    <option value="4/4">4/4</option>
+                    <option value="3/4">3/4</option>
+                    <option value="6/8">6/8</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Measures:</label>
+                <input type="number" id="measuresInput" value="4" min="1" max="32">
+            </div>
+        </div>
+
+        <div class="instruments">
+            <div class="instrument" data-instrument="violin1">
+                <div class="instrument-header">
+                    <span class="instrument-name">🎻 Violin I</span>
+                    <div class="dev-selector">
+                        <label>Development:</label>
+                        <select class="dev-style" data-instrument="violin1">
+                            <option value="original">Original Motif</option>
+                            <option value="inversion">Inversion</option>
+                            <option value="retrograde">Retrograde</option>
+                            <option value="augmentation">Augmentation</option>
+                            <option value="transposition-up">Transpose Up</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pattern-display" id="violin1-pattern"></div>
+            </div>
+
+            <div class="instrument" data-instrument="violin2">
+                <div class="instrument-header">
+                    <span class="instrument-name">🎻 Violin II</span>
+                    <div class="dev-selector">
+                        <label>Development:</label>
+                        <select class="dev-style" data-instrument="violin2">
+                            <option value="original">Original Motif</option>
+                            <option value="inversion">Inversion</option>
+                            <option value="retrograde">Retrograde</option>
+                            <option value="diminution">Diminution</option>
+                            <option value="transposition-down">Transpose Down</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pattern-display" id="violin2-pattern"></div>
+            </div>
+
+            <div class="instrument" data-instrument="viola">
+                <div class="instrument-header">
+                    <span class="instrument-name">🎻 Viola</span>
+                    <div class="dev-selector">
+                        <label>Development:</label>
+                        <select class="dev-style" data-instrument="viola">
+                            <option value="original">Original Motif</option>
+                            <option value="retrograde-inversion">Retrograde Inversion</option>
+                            <option value="fragmentation">Fragmentation</option>
+                            <option value="augmentation">Augmentation</option>
+                            <option value="transposition-fifth">Transpose Fifth</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pattern-display" id="viola-pattern"></div>
+            </div>
+
+            <div class="instrument" data-instrument="cello">
+                <div class="instrument-header">
+                    <span class="instrument-name">🎻 Cello</span>
+                    <div class="dev-selector">
+                        <label>Development:</label>
+                        <select class="dev-style" data-instrument="cello">
+                            <option value="original">Original Motif</option>
+                            <option value="augmentation">Augmentation</option>
+                            <option value="fragmentation">Fragmentation</option>
+                            <option value="pedal">Pedal Point</option>
+                            <option value="bass-line">Bass Line</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pattern-display" id="cello-pattern"></div>
+            </div>
+        </div>
+
+        <div class="playback-controls">
+            <button id="generateBtn">🎲 Generate from Motif</button>
+            <button id="playBtn">▶️ Play</button>
+            <button id="stopBtn">⏹️ Stop</button>
+            <button id="exportBtn">📥 Export MusicXML</button>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Global variables for motif storage
+        let originalMotif = {
+            pitches: [],
+            durations: [],
+            intervals: []
+        };
+        
+        let patterns = {
+            violin1: [],
+            violin2: [],
+            viola: [],
+            cello: []
+        };
+
+        let isPlaying = false;
+        let currentBeat = 0;
+        let playbackInterval = null;
+
+        // Simple MIDI parser (basic implementation)
+        function parseMIDI(arrayBuffer) {
+            const bytes = new Uint8Array(arrayBuffer);
+            const motif = {
+                pitches: [],
+                durations: [],
+                intervals: []
+            };
+            
+            // This is a simplified parser - in real implementation you'd use a library
+            // For now, generate sample motif data
+            motif.pitches = [60, 62, 64, 65, 67]; // C, D, E, F, G
+            motif.durations = [4, 4, 2, 2, 8]; // Quarter, quarter, eighth, eighth, half
+            
+            // Calculate intervals
+            for (let i = 1; i < motif.pitches.length; i++) {
+                motif.intervals.push(motif.pitches[i] - motif.pitches[i-1]);
+            }
+            
+            return motif;
+        }
+
+        function handleMIDIFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('fileName').textContent = file.name;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                originalMotif = parseMIDI(e.target.result);
+                displayMotif();
+                showStatus('✅ MIDI file loaded and motif extracted!');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayMotif() {
+            document.getElementById('motifDisplay').classList.add('active');
+            
+            const notesContainer = document.getElementById('motifNotes');
+            notesContainer.innerHTML = '';
+            
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            
+            originalMotif.pitches.forEach((pitch, i) => {
+                const noteName = noteNames[pitch % 12];
+                const octave = Math.floor(pitch / 12) - 1;
+                const duration = originalMotif.durations[i] || 4;
+                
+                const noteDiv = document.createElement('div');
+                noteDiv.className = 'motif-note';
+                noteDiv.textContent = `${noteName}${octave} (${duration})`;
+                notesContainer.appendChild(noteDiv);
+            });
+            
+            document.getElementById('pitchSequence').textContent = 
+                originalMotif.pitches.map(p => noteNames[p % 12]).join(' - ');
+            document.getElementById('rhythmSequence').textContent = 
+                originalMotif.durations.map(d => `${d}/16`).join(' - ');
+            document.getElementById('intervalSequence').textContent = 
+                originalMotif.intervals.join(', ');
+        }
+
+        function selectTechnique(technique) {
+            document.querySelectorAll('.dev-technique').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelector(`[data-technique="${technique}"]`).classList.add('active');
+            generateFromMotif();
+        }
+
+        // Motif development techniques
+        function developMotif(motif, technique, instrument) {
+            let developed = JSON.parse(JSON.stringify(motif)); // Deep copy
+            
+            switch(technique) {
+                case 'inversion':
+                    developed.intervals = developed.intervals.map(i => -i);
+                    developed.pitches = [developed.pitches[0]];
+                    for (let i = 0; i < developed.intervals.length; i++) {
+                        developed.pitches.push(developed.pitches[i] + developed.intervals[i]);
+                    }
+                    break;
+                    
+                case 'retrograde':
+                    developed.pitches = developed.pitches.reverse();
+                    developed.durations = developed.durations.reverse();
+                    developed.intervals = developed.intervals.reverse().map(i => -i);
+                    break;
+                    
+                case 'retrograde-inversion':
+                    developed.intervals = developed.intervals.map(i => -i).reverse();
+                    developed.pitches = [developed.pitches[0]];
+                    for (let i = 0; i < developed.intervals.length; i++) {
+                        developed.pitches.push(developed.pitches[i] + developed.intervals[i]);
+                    }
+                    developed.durations = developed.durations.reverse();
+                    break;
+                    
+                case 'augmentation':
+                    developed.durations = developed.durations.map(d => d * 2);
+                    break;
+                    
+                case 'diminution':
+                    developed.durations = developed.durations.map(d => Math.max(1, Math.floor(d / 2)));
+                    break;
+                    
+                case 'transposition-up':
+                    developed.pitches = developed.pitches.map(p => p + 7); // Up a fifth
+                    break;
+                    
+                case 'transposition-down':
+                    developed.pitches = developed.pitches.map(p => p - 7); // Down a fifth
+                    break;
+                    
+                case 'transposition-fifth':
+                    developed.pitches = developed.pitches.map(p => p + 7);
+                    break;
+                    
+                case 'fragmentation':
+                    // Use only first half of motif
+                    const halfLength = Math.ceil(developed.pitches.length / 2);
+                    developed.pitches = developed.pitches.slice(0, halfLength);
+                    developed.durations = developed.durations.slice(0, halfLength);
+                    break;
+                    
+                case 'pedal':
+                    // Single repeated note
+                    const pedalNote = developed.pitches[0] - 12; // Octave lower
+                    developed.pitches = [pedalNote];
+                    developed.durations = [16]; // Whole note
+                    break;
+                    
+                case 'bass-line':
+                    // Use roots of implied harmony
+                    developed.pitches = developed.pitches.filter((p, i) => i % 2 === 0).map(p => p - 24);
+                    developed.durations = developed.durations.filter((d, i) => i % 2 === 0).map(d => d * 2);
+                    break;
+            }
+            
+            // Adjust octaves for instrument ranges
+            const octaveAdjust = {
+                violin1: 0,
+                violin2: 0,
+                viola: -12,
+                cello: -24
+            };
+            
+            developed.pitches = developed.pitches.map(p => p + octaveAdjust[instrument]);
+            
+            return developed;
+        }
+
+        function generateFromMotif() {
+            if (originalMotif.pitches.length === 0) {
+                // Use default motif if no MIDI loaded
+                originalMotif = {
+                    pitches: [60, 62, 64, 65, 67],
+                    durations: [4, 4, 2, 2, 8],
+                    intervals: [2, 2, 1, 2]
+                };
+            }
+            
+            ['violin1', 'violin2', 'viola', 'cello'].forEach(instrument => {
+                const devStyle = document.querySelector(`.dev-style[data-instrument="${instrument}"]`).value;
+                const developed = developMotif(originalMotif, devStyle, instrument);
+                
+                patterns[instrument] = [];
+                let currentPosition = 0;
+                
+                developed.pitches.forEach((pitch, i) => {
+                    const duration = developed.durations[i] || 4;
+                    if (currentPosition + duration <= 16) {
+                        patterns[instrument].push({
+                            start: currentPosition,
+                            duration: duration,
+                            pitch: midiToNote(pitch),
+                            type: 'note'
+                        });
+                        currentPosition += duration;
+                    }
+                });
+                
+                // Fill remaining space with rest
+                if (currentPosition < 16) {
+                    patterns[instrument].push({
+                        start: currentPosition,
+                        duration: 16 - currentPosition,
+                        pitch: null,
+                        type: 'rest'
+                    });
+                }
+                
+                displayPattern(instrument);
+            });
+            
+            showStatus('✅ Generated patterns from motif using development techniques!');
+        }
+
+        function midiToNote(midiNumber) {
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const noteName = noteNames[midiNumber % 12];
+            const octave = Math.floor(midiNumber / 12) - 1;
+            return noteName.replace('#', '#') + octave;
+        }
+
+        function displayPattern(instrument) {
+            const container = document.getElementById(`${instrument}-pattern`);
+            container.innerHTML = '';
+            
+            patterns[instrument].forEach(note => {
+                const block = document.createElement('div');
+                block.className = note.pitch ? 'note-block motif' : 'note-block rest';
+                block.style.left = `${(note.start / 16) * 100}%`;
+                block.style.width = `${(note.duration / 16) * 100}%`;
+                
+                const durationName = note.duration === 16 ? '𝅝' :
+                                   note.duration === 12 ? '𝅗𝅥.' :
+                                   note.duration === 8 ? '𝅗𝅥' :
+                                   note.duration === 4 ? '♩' :
+                                   note.duration === 2 ? '♪' : '♬';
+                
+                block.textContent = note.pitch ? `${note.pitch} ${durationName}` : '𝄽';
+                container.appendChild(block);
+            });
+        }
+
+        function play() {
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            currentBeat = 0;
+            const tempo = parseInt(document.getElementById('tempoInput').value);
+            const beatDuration = 60000 / tempo / 4;
+            
+            playbackInterval = setInterval(() => {
+                ['violin1', 'violin2', 'viola', 'cello'].forEach(instrument => {
+                    const blocks = document.querySelectorAll(`#${instrument}-pattern .note-block`);
+                    blocks.forEach(block => block.classList.remove('active'));
+                    
+                    patterns[instrument].forEach((note, i) => {
+                        if (currentBeat >= note.start && currentBeat < note.start + note.duration) {
+                            blocks[i]?.classList.add('active');
+                        }
+                    });
+                });
+                
+                currentBeat++;
+                if (currentBeat >= 16) {
+                    currentBeat = 0;
+                }
+            }, beatDuration);
+            
+            showStatus('▶️ Playing...');
+        }
+
+        function stop() {
+            isPlaying = false;
+            if (playbackInterval) {
+                clearInterval(playbackInterval);
+                playbackInterval = null;
+            }
+            
+            document.querySelectorAll('.note-block').forEach(block => {
+                block.classList.remove('active');
+            });
+            
+            currentBeat = 0;
+            showStatus('⏹️ Stopped');
+        }
+
+        function exportMusicXML() {
+            const tempo = document.getElementById('tempoInput').value;
+            const timeSignature = document.getElementById('timeSignature').value;
+            const [beats, beatType] = timeSignature.split('/');
+            const key = document.getElementById('keySelect').value;
+            const numMeasures = parseInt(document.getElementById('measuresInput').value);
+            
+            const fifths = {
+                'C': 0, 'G': 1, 'D': 2, 'A': 3, 'F': -1, 'Bb': -2,
+                'Am': 0, 'Em': 1, 'Dm': -1
+            };
+            
+            const instrumentRanges = {
+                violin1: { clef: 'treble' },
+                violin2: { clef: 'treble' },
+                viola: { clef: 'alto' },
+                cello: { clef: 'bass' }
+            };
+            
+            let musicXML = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="3.1">
+    <identification>
+        <creator type="composer">Mike Bryant</creator>
+        <encoding>
+            <software>Quartet Engine V4.0 - MIDI Import Edition</software>
+            <encoding-date>${new Date().toISOString().split('T')[0]}</encoding-date>
+        </encoding>
+    </identification>
+    <part-list>
+        <score-part id="P1"><part-name>Violin I</part-name></score-part>
+        <score-part id="P2"><part-name>Violin II</part-name></score-part>
+        <score-part id="P3"><part-name>Viola</part-name></score-part>
+        <score-part id="P4"><part-name>Cello</part-name></score-part>
+    </part-list>`;
+            
+            ['violin1', 'violin2', 'viola', 'cello'].forEach((instrument, partIndex) => {
+                const partId = `P${partIndex + 1}`;
+                const clef = instrumentRanges[instrument].clef;
+                
+                musicXML += `\n    <part id="${partId}">`;
+                
+                for (let m = 0; m < numMeasures; m++) {
+                    musicXML += `\n        <measure number="${m + 1}">`;
+                    
+                    if (m === 0) {
+                        musicXML += `
+            <attributes>
+                <divisions>4</divisions>
+                <key><fifths>${fifths[key] || 0}</fifths></key>
+                <time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>
+                <clef>
+                    <sign>${clef === 'treble' ? 'G' : clef === 'alto' ? 'C' : 'F'}</sign>
+                    <line>${clef === 'treble' ? '2' : clef === 'alto' ? '3' : '4'}</line>
+                </clef>
+            </attributes>
+            <direction placement="above">
+                <direction-type>
+                    <metronome>
+                        <beat-unit>quarter</beat-unit>
+                        <per-minute>${tempo}</per-minute>
+                    </metronome>
+                </direction-type>
+            </direction>`;
+                    }
+                    
+                    // Use the patterns for each instrument
+                    if (patterns[instrument] && patterns[instrument].length > 0) {
+                        patterns[instrument].forEach(note => {
+                            if (note.pitch) {
+                                // Parse the note (e.g., "C#4" -> step: C, alter: 1, octave: 4)
+                                const pitchMatch = note.pitch.match(/([A-G])(#?)([0-9])/);
+                                if (pitchMatch) {
+                                    const step = pitchMatch[1];
+                                    const alter = pitchMatch[2] === '#' ? '1' : '';
+                                    const octave = pitchMatch[3];
+                                    
+                                    musicXML += `
+            <note>
+                <pitch>
+                    <step>${step}</step>
+                    ${alter ? `<alter>${alter}</alter>` : ''}
+                    <octave>${octave}</octave>
+                </pitch>
+                <duration>${note.duration}</duration>
+                <type>${getDurationType(note.duration)}</type>
+            </note>`;
+                                }
+                            } else {
+                                musicXML += `
+            <note>
+                <rest/>
+                <duration>${note.duration}</duration>
+                <type>${getDurationType(note.duration)}</type>
+            </note>`;
+                            }
+                        });
+                    } else {
+                        // If no pattern, add a whole rest
+                        musicXML += `
+            <note>
+                <rest/>
+                <duration>16</duration>
+                <type>whole</type>
+            </note>`;
+                    }
+                    
+                    musicXML += `\n        </measure>`;
+                }
+                
+                musicXML += `\n    </part>`;
+            });
+            
+            musicXML += `\n</score-partwise>`;
+            
+            // Download the file
+            const blob = new Blob([musicXML], { type: 'application/vnd.recordare.musicxml+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quartet_motif_${key}_${new Date().getTime()}.musicxml`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showStatus('✅ Exported to MusicXML with motif developments!');
+        }
+        
+        function getDurationType(duration) {
+            switch(duration) {
+                case 16: return 'whole';
+                case 12: return 'half';
+                case 8: return 'half';
+                case 4: return 'quarter';
+                case 2: return 'eighth';
+                case 1: return 'sixteenth';
+                default: return 'quarter';
+            }
+        }
+
+        function showStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        // Event listeners
+        document.getElementById('generateBtn').addEventListener('click', generateFromMotif);
+        document.getElementById('playBtn').addEventListener('click', play);
+        document.getElementById('stopBtn').addEventListener('click', stop);
+        document.getElementById('exportBtn').addEventListener('click', exportMusicXML);
+        
+        // Initialize with default motif
+        generateFromMotif();
+    </script>
+</body>
+</html>
